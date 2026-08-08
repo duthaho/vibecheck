@@ -87,6 +87,11 @@ export async function runAttempt(
   if (!resultOk) {
     return { outcome: "error", model, claudeCodeVersion, durationMs, numTurns };
   }
-  const outcome = await gradeFn(task, workspacePath);
+  let outcome: Outcome;
+  try {
+    outcome = await gradeFn(task, workspacePath);
+  } catch {
+    outcome = "error"; // a crashing grader is a harness problem, never a model fail
+  }
   return { outcome, model, claudeCodeVersion, durationMs, numTurns };
 }

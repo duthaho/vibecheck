@@ -1,6 +1,6 @@
 // D3/D7 — one self-contained static HTML dashboard: inline CSS, hand-rolled
 // SVG, zero external resources. Publishable as-is to GitHub Pages.
-import { aggregateDaily, verdict, type DailyPoint, type Verdict } from "./stats.js";
+import { aggregateDaily, rollingMean, verdict, type DailyPoint, type Verdict } from "./stats.js";
 import { wilsonInterval } from "./stats.js";
 import type { AttemptRecord } from "./schema.js";
 
@@ -24,10 +24,12 @@ function trendSvg(daily: DailyPoint[]): string {
     ...[...daily].reverse().map((d, i) => `${x(n - 1 - i, n)},${y(d.ci.low)}`),
   ].join(" ");
   const line = daily.map((d, i) => `${x(i, n)},${y(d.rate)}`).join(" ");
+  const roll = rollingMean(daily, 7);
+  const rollLine = roll.map((d, i) => `${x(i, n)},${y(d.rate)}`).join(" ");
   const points = daily
     .map(
       (d, i) =>
-        `<circle cx="${x(i, n)}" cy="${y(d.rate)}" r="3.5" fill="#0a7d38"><title>${d.day}: ${d.passes}/${d.n} pass (${(d.rate * 100).toFixed(0)}%)</title></circle>`,
+        `<circle cx="${x(i, n)}" cy="${y(d.rate)}" r="3.5" fill="#0a7d38"><title>${escapeHtml(d.day)}: ${d.passes}/${d.n} pass (${(d.rate * 100).toFixed(0)}%)</title></circle>`,
     )
     .join("");
   const labels = daily
@@ -46,6 +48,7 @@ function trendSvg(daily: DailyPoint[]): string {
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily pass rate">
 ${gridlines}
 <polygon class="ci-band" points="${band}" fill="#0a7d38" opacity="0.12"/>
+<polyline class="rolling-mean" points="${rollLine}" fill="none" stroke="#345" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.7"/>
 <polyline points="${line}" fill="none" stroke="#0a7d38" stroke-width="2"/>
 ${points}
 ${labels}
@@ -72,7 +75,7 @@ function taskTable(records: AttemptRecord[]): string {
       const ci = wilsonInterval(passes, graded.length);
       const last10 = recs
         .slice(-10)
-        .map((r) => `<i class="dot ${r.outcome}" title="${r.ts.slice(0, 10)}: ${r.outcome}"></i>`)
+        .map((r) => `<i class="dot ${r.outcome}" title="${escapeHtml(r.ts.slice(0, 10))}: ${r.outcome}"></i>`)
         .join("");
       const rate = graded.length ? ((passes / graded.length) * 100).toFixed(0) : "–";
       return `<tr><td>${escapeHtml(taskId)}</td><td>${escapeHtml(recs[0]!.task_category)}</td><td>${passes}/${graded.length} (${rate}%)</td><td class="ci">[${(ci.low * 100).toFixed(0)}–${(ci.high * 100).toFixed(0)}%]</td><td>${last10}</td></tr>`;
@@ -82,11 +85,18 @@ function taskTable(records: AttemptRecord[]): string {
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export function renderDashboard(records: AttemptRecord[], asOf: Date = new Date()): string {
-  const daily = aggregateDaily(records);
+  // Days with only harness errors have no graded attempts — plotting them as
+  // 0% would fake a collapse, so they're excluded from the chart.
+  const daily = aggregateDaily(records).filter((d) => d.n > 0);
   const v = verdict(records, asOf);
   const models = [...new Set(records.map((r) => r.model))].join(", ") || "–";
   const total = records.length;
@@ -119,7 +129,7 @@ ${verdictBanner(v)}
 <p>${total} attempts · ${daily.length} days · model(s): ${escapeHtml(models)} · generated ${asOf.toISOString().slice(0, 16)}Z</p>
 ${trendSvg(daily)}
 ${taskTable(records)}
-<footer>Daily pass rate with Wilson 95% CI band. Verdict compares the last 2 days against the trailing 14-day baseline (two-proportion test, α=0.05); with too few attempts it says so instead of guessing. Generated locally by <strong>vibecheck</strong> — keyless, self-hosted, your own subscription and config.</footer>
+<footer>Daily pass rate (solid) with Wilson 95% CI band; dashed line is the pooled 7-day rolling mean. Verdict compares the last 2 days against the trailing 14-day baseline (two-proportion test, α=0.05); with too few attempts it says so instead of guessing. Generated locally by <strong>vibecheck</strong> — keyless, self-hosted, your own subscription and config.</footer>
 </body>
 </html>
 `;

@@ -61,3 +61,27 @@ describe("renderDashboard", () => {
     expect(sparse).toMatch(/INSUFFICIENT/);
   });
 });
+
+describe("renderDashboard hardening", () => {
+  const asOf = new Date("2026-08-16T23:00:00Z");
+
+  it("shows the 7-day rolling mean line (D3)", () => {
+    const html = renderDashboard(healthyHistory(), asOf);
+    expect(html).toContain("rolling-mean");
+  });
+
+  it("escapes hostile strings instead of injecting markup", () => {
+    const hostile = rec("2026-08-16", `"><script>alert(1)</script>`, "pass");
+    const html = renderDashboard([hostile], asOf);
+    expect(html).not.toContain("<script>alert");
+    expect(html).not.toMatch(/title="[^"]*"><script/);
+  });
+
+  it("does not plot error-only days as 0% pass", () => {
+    const html = renderDashboard(
+      [...healthyHistory(), rec("2026-08-17", "fix-sum-offby1", "error")],
+      new Date("2026-08-17T23:00:00Z"),
+    );
+    expect(html).not.toMatch(/<circle[^>]*<title>2026-08-17/);
+  });
+});

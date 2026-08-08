@@ -175,3 +175,19 @@ export function verdict(records: AttemptRecord[], asOf: Date = new Date()): Verd
     reason: `recent ${(recentRate * 100).toFixed(0)}% vs baseline ${(baselineRate * 100).toFixed(0)}% — no significant drop`,
   };
 }
+
+export interface RollingPoint {
+  day: string;
+  rate: number;
+  n: number;
+}
+
+/** Trailing pooled pass rate over up to `window` calendar points (D3/D7). */
+export function rollingMean(daily: DailyPoint[], window: number): RollingPoint[] {
+  return daily.map((d, i) => {
+    const slice = daily.slice(Math.max(0, i - window + 1), i + 1);
+    const n = slice.reduce((s, p) => s + p.n, 0);
+    const passes = slice.reduce((s, p) => s + p.passes, 0);
+    return { day: d.day, rate: n === 0 ? 0 : passes / n, n };
+  });
+}

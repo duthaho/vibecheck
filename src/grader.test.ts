@@ -68,3 +68,19 @@ describe("runGrader", () => {
     expect(await runGrader(task, workspace)).toBe("error");
   });
 });
+
+describe("runGrader hardening", () => {
+  it("handles a task dir containing spaces (quoted $TASK_DIR)", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "vibecheck grader space-"));
+    const taskDir = join(parent, "my task");
+    mkdirSync(taskDir);
+    writeFileSync(join(taskDir, "grade.cjs"), "process.exit(0);");
+    const workspace = mkdtempSync(join(tmpdir(), "vibecheck-grader-ws-"));
+    const task: TaskDef = {
+      id: "t", category: "code-fix", prompt: "p", allowedTools: [],
+      maxTurns: 1, timeoutMs: 5000,
+      grade: { command: "node $TASK_DIR/grade.cjs" }, dir: taskDir,
+    };
+    expect(await runGrader(task, workspace)).toBe("pass");
+  });
+});

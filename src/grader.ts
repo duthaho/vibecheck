@@ -7,7 +7,10 @@ import type { Outcome } from "./schema.js";
 import type { TaskDef } from "./pack.js";
 
 export function runGrader(task: TaskDef, workspacePath: string): Promise<Outcome> {
-  const command = task.grade.command.replaceAll("$TASK_DIR", task.dir);
+  // Quote the substitution: task dirs with spaces/metacharacters must not
+  // change the command the shell runs (a harness bug would masquerade as a
+  // model failure).
+  const command = task.grade.command.replaceAll("$TASK_DIR", `"${task.dir}"`);
   return new Promise((resolvePromise) => {
     const child = spawn(command, {
       cwd: workspacePath,

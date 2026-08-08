@@ -99,10 +99,11 @@ async function runCmd(args: string[], deps: CliDeps): Promise<number> {
       } finally {
         ws.cleanup();
       }
+      // Append immediately: an interrupted run must keep its finished attempts.
+      appendRecords(flags.results, records.slice(-1));
     }
   }
 
-  appendRecords(flags.results, records);
   const passed = records.filter((r) => r.outcome === "pass").length;
   console.log(`run ${runId}: ${passed}/${records.length} passed → ${flags.results}`);
   return 0;
@@ -150,10 +151,10 @@ async function reportCmd(args: string[]): Promise<number> {
   console.log(`  ${v.reason}`);
 
   const daily = aggregateDaily(records);
-  const today = daily.at(-1);
-  if (today) {
+  const latest = daily.at(-1);
+  if (latest) {
     console.log(
-      `  today (${today.day}): ${today.passes}/${today.n} pass [${(today.ci.low * 100).toFixed(0)}–${(today.ci.high * 100).toFixed(0)}%]${today.errors ? ` (${today.errors} harness errors)` : ""}`,
+      `  latest day (${latest.day}): ${latest.passes}/${latest.n} pass [${(latest.ci.low * 100).toFixed(0)}–${(latest.ci.high * 100).toFixed(0)}%]${latest.errors ? ` (${latest.errors} harness errors)` : ""}`,
     );
   }
   const trend = daily.slice(-7).map((d) => `${d.day.slice(5)} ${(d.rate * 100).toFixed(0)}%`).join(" · ");

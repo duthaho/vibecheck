@@ -67,3 +67,10 @@ describe("getRunnerId", () => {
     expect(getRunnerId(d1)).not.toBe(getRunnerId(d2));
   });
 });
+
+describe("validateRecord ts hardening", () => {
+  it("rejects a non-ISO ts (injection vector)", () => {
+    const bad = { ...makeRecord(base), ts: '"><style>' };
+    expect(validateRecord(bad).length).toBeGreaterThan(0);
+  });
+});

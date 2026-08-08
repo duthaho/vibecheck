@@ -39,8 +39,14 @@ node dist/cli.js report            # terminal verdict
 node dist/cli.js render            # writes dashboard/index.html
 ```
 
-Requirements: Node ≥ 20 and a machine where `claude` is installed and
+Requirements: Node ≥ 22 and a machine where `claude` is installed and
 logged in (subscription auth is inherited — that's the whole point).
+
+> **Isolation note:** each attempt runs in a fresh temp workspace with only
+> the tools its task declares, but tasks granting `Bash` are not
+> OS-sandboxed beyond their working directory. The starter pack's Bash
+> tasks only read their own fixtures; review any third-party task pack
+> before running it, exactly as you would a shell script.
 
 ### What a verdict means
 

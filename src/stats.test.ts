@@ -129,3 +129,29 @@ describe("verdict", () => {
     expect(verdict(days(spec), asOf).status).toBe("ok");
   });
 });
+
+describe("rollingMean", () => {
+  it("computes trailing 7-day pooled pass rate", async () => {
+    const { rollingMean } = await import("./stats.js");
+    const daily = aggregateDaily(
+      days({
+        "2026-08-01": { pass: 10, fail: 0 },
+        "2026-08-02": { pass: 0, fail: 10 },
+        "2026-08-03": { pass: 5, fail: 5 },
+      }),
+    );
+    const roll = rollingMean(daily, 7);
+    expect(roll).toHaveLength(3);
+    expect(roll[0]!.rate).toBeCloseTo(1.0, 5);
+    expect(roll[1]!.rate).toBeCloseTo(0.5, 5); // pooled 10/20
+    expect(roll[2]!.rate).toBeCloseTo(0.5, 5); // pooled 15/30
+  });
+
+  it("windows correctly beyond 7 days", async () => {
+    const { rollingMean } = await import("./stats.js");
+    const spec: Record<string, { pass: number; fail: number }> = {};
+    for (let d = 1; d <= 10; d++) spec[`2026-08-${String(d).padStart(2, "0")}`] = { pass: d <= 3 ? 0 : 10, fail: d <= 3 ? 10 : 0 };
+    const roll = rollingMean(aggregateDaily(days(spec)), 7);
+    expect(roll[9]!.rate).toBeCloseTo(1.0, 5); // days 4-10 all pass
+  });
+});

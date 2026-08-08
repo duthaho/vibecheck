@@ -88,6 +88,9 @@ export function validateRecord(value: unknown): string[] {
       problems.push(`${key} must be a non-empty string`);
     }
   }
+  if (typeof rec.ts === "string" && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(rec.ts)) {
+    problems.push("ts must be a UTC ISO 8601 timestamp");
+  }
   if (!OUTCOMES.includes(rec.outcome as Outcome)) {
     problems.push(`outcome must be one of ${OUTCOMES.join("|")}`);
   }
@@ -111,6 +114,10 @@ export function getRunnerId(dataDir: string): string {
   if (existsSync(file)) return readFileSync(file, "utf8").trim();
   mkdirSync(dataDir, { recursive: true });
   const id = randomBytes(8).toString("hex");
-  writeFileSync(file, id + "\n");
+  try {
+    writeFileSync(file, id + "\n", { flag: "wx" }); // exclusive: lose the race, adopt the winner
+  } catch {
+    return readFileSync(file, "utf8").trim();
+  }
   return id;
 }

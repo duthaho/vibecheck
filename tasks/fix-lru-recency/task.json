@@ -1,0 +1,9 @@
+{
+  "id": "fix-lru-recency",
+  "category": "code-fix",
+  "prompt": "The file lru.js exports an LRU cache class with capacity-based eviction. It has a bug: reading a key with get() should mark that key as most-recently-used, but it doesn't, so the wrong entries get evicted. Fix the bug. Keep the class name, method signatures, and export unchanged; do not create other files.",
+  "allowedTools": ["Read", "Edit"],
+  "maxTurns": 12,
+  "timeoutMs": 180000,
+  "grade": { "command": "node $TASK_DIR/grade.cjs" }
+}

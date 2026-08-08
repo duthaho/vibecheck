@@ -1,0 +1,9 @@
+{
+  "id": "fix-date-parse",
+  "category": "code-fix",
+  "prompt": "The file dateparse.js exports parseYmd(str) which parses a 'YYYY-MM-DD' string into {year, month, day} (month is 1-based, January = 1). It currently returns wrong values for some inputs. Fix the bug(s). Keep the export and signature unchanged; do not create other files.",
+  "allowedTools": ["Read", "Edit"],
+  "maxTurns": 12,
+  "timeoutMs": 180000,
+  "grade": { "command": "node $TASK_DIR/grade.cjs" }
+}

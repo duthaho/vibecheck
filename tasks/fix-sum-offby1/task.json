@@ -1,0 +1,9 @@
+{
+  "id": "fix-sum-offby1",
+  "category": "code-fix",
+  "prompt": "The file sum.js contains a function sum(arr) with a bug: it returns the wrong total. Find and fix the bug. Do not change the function's name, signature, or export style, and do not create any other files.",
+  "allowedTools": ["Read", "Edit"],
+  "maxTurns": 10,
+  "timeoutMs": 180000,
+  "grade": { "command": "node $TASK_DIR/grade.cjs" }
+}

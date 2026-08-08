@@ -1,0 +1,9 @@
+{
+  "id": "mini-fix",
+  "category": "code-fix",
+  "prompt": "The file buggy.js has an off-by-one bug in sum(). Fix it. Do not modify anything else.",
+  "allowedTools": ["Read", "Edit"],
+  "maxTurns": 10,
+  "timeoutMs": 120000,
+  "grade": { "command": "node $TASK_DIR/grade.cjs" }
+}

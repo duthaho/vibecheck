@@ -61,3 +61,117 @@ function erf(x: number): number {
       Math.exp(-ax * ax);
   return sign * y;
 }
+
+// ---- Aggregation + verdict (D7) ----
+import type { AttemptRecord } from "./schema.js";
+
+export interface DailyPoint {
+  day: string; // YYYY-MM-DD (UTC)
+  n: number; // graded attempts (errors excluded)
+  passes: number;
+  errors: number;
+  rate: number;
+  ci: Interval;
+}
+
+/** Group records by UTC day. Harness errors are excluded from rates but counted. */
+export function aggregateDaily(records: AttemptRecord[]): DailyPoint[] {
+  const byDay = new Map<string, { n: number; passes: number; errors: number }>();
+  for (const r of records) {
+    const day = r.ts.slice(0, 10);
+    const bucket = byDay.get(day) ?? { n: 0, passes: 0, errors: 0 };
+    if (r.outcome === "error") bucket.errors++;
+    else {
+      bucket.n++;
+      if (r.outcome === "pass") bucket.passes++;
+    }
+    byDay.set(day, bucket);
+  }
+  return [...byDay.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([day, b]) => ({
+      day,
+      ...b,
+      rate: b.n === 0 ? 0 : b.passes / b.n,
+      ci: wilsonInterval(b.passes, b.n),
+    }));
+}
+
+export type VerdictStatus = "ok" | "degraded" | "insufficient_data";
+
+export interface Verdict {
+  status: VerdictStatus;
+  recent: Proportion;
+  baseline: Proportion;
+  pValue: number;
+  reason: string;
+}
+
+export const RECENT_DAYS = 2;
+export const BASELINE_DAYS = 14;
+export const MIN_RECENT_N = 8;
+export const MIN_BASELINE_N = 20;
+const ALPHA = 0.05;
+
+function dayString(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function shiftDays(day: string, delta: number): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + delta);
+  return dayString(d);
+}
+
+/** Recent window (today + yesterday) vs trailing baseline. Honest about low N. */
+export function verdict(records: AttemptRecord[], asOf: Date = new Date()): Verdict {
+  const today = dayString(asOf);
+  const recentStart = shiftDays(today, -(RECENT_DAYS - 1));
+  const baselineStart = shiftDays(recentStart, -BASELINE_DAYS);
+
+  const recent: Proportion = { successes: 0, n: 0 };
+  const baseline: Proportion = { successes: 0, n: 0 };
+  for (const r of records) {
+    if (r.outcome === "error") continue;
+    const day = r.ts.slice(0, 10);
+    const target =
+      day >= recentStart && day <= today
+        ? recent
+        : day >= baselineStart && day < recentStart
+          ? baseline
+          : null;
+    if (!target) continue;
+    target.n++;
+    if (r.outcome === "pass") target.successes++;
+  }
+
+  if (recent.n < MIN_RECENT_N || baseline.n < MIN_BASELINE_N) {
+    return {
+      status: "insufficient_data",
+      recent,
+      baseline,
+      pValue: 1,
+      reason: `need ≥${MIN_RECENT_N} recent and ≥${MIN_BASELINE_N} baseline graded attempts (have ${recent.n}/${baseline.n})`,
+    };
+  }
+
+  const { pValue } = twoProportionTest(recent, baseline);
+  const recentRate = recent.successes / recent.n;
+  const baselineRate = baseline.successes / baseline.n;
+  if (pValue < ALPHA && recentRate < baselineRate) {
+    return {
+      status: "degraded",
+      recent,
+      baseline,
+      pValue,
+      reason: `recent pass rate ${(recentRate * 100).toFixed(0)}% vs baseline ${(baselineRate * 100).toFixed(0)}% (p=${pValue.toExponential(2)})`,
+    };
+  }
+  return {
+    status: "ok",
+    recent,
+    baseline,
+    pValue,
+    reason: `recent ${(recentRate * 100).toFixed(0)}% vs baseline ${(baselineRate * 100).toFixed(0)}% — no significant drop`,
+  };
+}

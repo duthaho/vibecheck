@@ -3,3 +3,4 @@ dist/
 results/
 dashboard/
 *.tsbuildinfo
+canary.log

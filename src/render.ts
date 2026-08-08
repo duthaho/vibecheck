@@ -6,7 +6,7 @@ import type { AttemptRecord } from "./schema.js";
 
 const W = 900;
 const H = 320;
-const PAD = { left: 50, right: 20, top: 20, bottom: 40 };
+const PAD = { left: 52, right: 20, top: 20, bottom: 40 };
 
 function x(i: number, count: number): number {
   if (count === 1) return PAD.left + (W - PAD.left - PAD.right) / 2;
@@ -29,27 +29,27 @@ function trendSvg(daily: DailyPoint[]): string {
   const points = daily
     .map(
       (d, i) =>
-        `<circle cx="${x(i, n)}" cy="${y(d.rate)}" r="3.5" fill="#0a7d38"><title>${escapeHtml(d.day)}: ${d.passes}/${d.n} pass (${(d.rate * 100).toFixed(0)}%)</title></circle>`,
+        `<circle class="pt" cx="${x(i, n)}" cy="${y(d.rate)}" r="3.5"><title>${escapeHtml(d.day)}: ${d.passes}/${d.n} pass (${(d.rate * 100).toFixed(0)}%)</title></circle>`,
     )
     .join("");
   const labels = daily
     .map((d, i) =>
       n <= 20 || i % Math.ceil(n / 15) === 0
-        ? `<text x="${x(i, n)}" y="${H - 8}" font-size="10" text-anchor="middle" fill="#667">${d.day.slice(5)}</text>`
+        ? `<text class="axis" x="${x(i, n)}" y="${H - 8}" text-anchor="middle">${escapeHtml(d.day.slice(5))}</text>`
         : "",
     )
     .join("");
   const gridlines = [0, 0.25, 0.5, 0.75, 1]
     .map(
       (r) =>
-        `<line x1="${PAD.left}" y1="${y(r)}" x2="${W - PAD.right}" y2="${y(r)}" stroke="#e3e6ea"/><text x="${PAD.left - 8}" y="${y(r) + 4}" font-size="10" text-anchor="end" fill="#667">${r * 100}%</text>`,
+        `<line class="grid" x1="${PAD.left}" y1="${y(r)}" x2="${W - PAD.right}" y2="${y(r)}"/><text class="axis" x="${PAD.left - 8}" y="${y(r) + 4}" text-anchor="end">${r * 100}%</text>`,
     )
     .join("");
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily pass rate">
 ${gridlines}
-<polygon class="ci-band" points="${band}" fill="#0a7d38" opacity="0.12"/>
-<polyline class="rolling-mean" points="${rollLine}" fill="none" stroke="#345" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.7"/>
-<polyline points="${line}" fill="none" stroke="#0a7d38" stroke-width="2"/>
+<polygon class="ci-band" points="${band}"/>
+<polyline class="rolling-mean" points="${rollLine}"/>
+<polyline class="trend" points="${line}"/>
 ${points}
 ${labels}
 </svg>`;
@@ -59,7 +59,10 @@ function verdictBanner(v: Verdict): string {
   const label =
     v.status === "ok" ? "OK" : v.status === "degraded" ? "DEGRADED" : "INSUFFICIENT DATA";
   const cls = v.status.replace("_", "-");
-  return `<div class="verdict ${cls}"><strong>${label}</strong><span>${escapeHtml(v.reason)}</span></div>`;
+  return `<section class="verdict ${cls}">
+<div class="verdict-status">${label}</div>
+<div class="verdict-reason">&rarr; ${escapeHtml(v.reason)}</div>
+</section>`;
 }
 
 function taskTable(records: AttemptRecord[]): string {
@@ -78,10 +81,10 @@ function taskTable(records: AttemptRecord[]): string {
         .map((r) => `<i class="dot ${r.outcome}" title="${escapeHtml(r.ts.slice(0, 10))}: ${r.outcome}"></i>`)
         .join("");
       const rate = graded.length ? ((passes / graded.length) * 100).toFixed(0) : "–";
-      return `<tr><td>${escapeHtml(taskId)}</td><td>${escapeHtml(recs[0]!.task_category)}</td><td>${passes}/${graded.length} (${rate}%)</td><td class="ci">[${(ci.low * 100).toFixed(0)}–${(ci.high * 100).toFixed(0)}%]</td><td>${last10}</td></tr>`;
+      return `<tr><td class="task-id">${escapeHtml(taskId)}</td><td class="cat">${escapeHtml(recs[0]!.task_category)}</td><td>${passes}/${graded.length} (${rate}%)</td><td class="ci">[${(ci.low * 100).toFixed(0)}–${(ci.high * 100).toFixed(0)}%]</td><td>${last10}</td></tr>`;
     })
     .join("\n");
-  return `<table><thead><tr><th>Task</th><th>Category</th><th>Pass</th><th>95% CI</th><th>Last 10</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<div class="table-wrap"><table><thead><tr><th>task</th><th>category</th><th>pass</th><th>95% ci</th><th>last 10</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function escapeHtml(s: string): string {
@@ -108,28 +111,143 @@ export function renderDashboard(records: AttemptRecord[], asOf: Date = new Date(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>vibecheck — is my Claude Code degraded?</title>
 <style>
-:root { color-scheme: light; }
-body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; color: #1a2330; }
-h1 { font-size: 1.5rem; } h1 .q { color: #667; font-weight: 400; }
-.verdict { display: flex; gap: 1rem; align-items: baseline; padding: .8rem 1rem; border-radius: 8px; margin: 1rem 0; }
-.verdict.ok { background: #e7f6ec; color: #0a7d38; }
-.verdict.degraded { background: #fdeaea; color: #b3261e; }
-.verdict.insufficient-data { background: #fff4e0; color: #8a5a00; }
-table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid #e3e6ea; }
-.ci { color: #667; font-variant-numeric: tabular-nums; }
-.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 2px; }
-.dot.pass { background: #0a7d38; } .dot.fail { background: #b3261e; } .dot.error { background: #c9cdd3; }
-footer { margin-top: 2rem; color: #667; font-size: .85rem; }
+/* Hallmark · macrostructure: Workbench · genre: editorial · theme: Terminal
+ * tone: technical · anchor hue: phosphor-green 150 · motion: none
+ * audience: HN devs · use: read the verdict in 5s, trust the method
+ * constraint: fully self-contained (no external fonts/assets — tests enforce) */
+:root {
+  color-scheme: dark;
+  --color-paper:   oklch(17% 0.015 160);
+  --color-paper-2: oklch(21% 0.018 160);
+  --color-ink:     oklch(88% 0.02 150);
+  --color-ink-2:   oklch(62% 0.025 155);
+  --color-rule:    oklch(31% 0.02 160);
+  --color-accent:  oklch(78% 0.17 150);
+  --color-danger:  oklch(68% 0.19 25);
+  --color-warn:    oklch(80% 0.13 85);
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --space-2xs: 0.5rem; --space-xs: 0.75rem; --space-sm: 1rem;
+  --space-md: 1.5rem;  --space-lg: 2rem;    --space-xl: 3rem;
+  --text-xs: 0.75rem; --text-sm: 0.8125rem; --text-md: 0.9375rem; --text-display: clamp(2rem, 6vw, 3.25rem);
+  --rule-hair: 1px solid var(--color-rule);
+}
+html, body { overflow-x: clip; }
+body {
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  margin: 0 auto;
+  max-width: 62rem;
+  padding: var(--space-xl) var(--space-md) var(--space-lg);
+}
+header { margin-bottom: var(--space-lg); }
+.wordmark {
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.wordmark .cursor { color: var(--color-accent); }
+.prompt {
+  color: var(--color-ink-2);
+  margin-top: var(--space-2xs);
+}
+.prompt .ps1 { color: var(--color-accent); }
+.verdict {
+  border-left: 3px solid var(--color-rule);
+  background: var(--color-paper-2);
+  padding: var(--space-sm) var(--space-md);
+  margin: var(--space-md) 0;
+  overflow-wrap: anywhere;
+}
+.verdict-status {
+  font-size: var(--text-display);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.verdict-reason { color: var(--color-ink-2); margin-top: var(--space-2xs); }
+.verdict.ok { border-left-color: var(--color-accent); }
+.verdict.ok .verdict-status { color: var(--color-accent); }
+.verdict.degraded { border-left-color: var(--color-danger); }
+.verdict.degraded .verdict-status { color: var(--color-danger); }
+.verdict.insufficient-data { border-left-color: var(--color-warn); }
+.verdict.insufficient-data .verdict-status { color: var(--color-warn); }
+.meta { color: var(--color-ink-2); font-size: var(--text-sm); margin: 0 0 var(--space-md); }
+.panel {
+  border: var(--rule-hair);
+  padding: var(--space-sm) var(--space-sm) var(--space-2xs);
+  margin-bottom: var(--space-lg);
+}
+.panel-title {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-2);
+  margin-bottom: var(--space-xs);
+}
+.panel-title .key-roll { color: var(--color-ink-2); }
+.panel-title .key-line { color: var(--color-accent); }
+svg { width: 100%; height: auto; display: block; }
+svg .grid { stroke: var(--color-rule); }
+svg .axis { fill: var(--color-ink-2); font-family: var(--font-mono); font-size: 10px; }
+svg .ci-band { fill: var(--color-accent); opacity: 0.13; }
+svg .rolling-mean { fill: none; stroke: var(--color-ink-2); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: 0.8; }
+svg .trend { fill: none; stroke: var(--color-accent); stroke-width: 2; }
+svg .pt { fill: var(--color-accent); stroke: var(--color-paper); stroke-width: 1; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: var(--text-sm); }
+th {
+  text-align: left;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-2);
+  font-weight: 400;
+  padding: var(--space-2xs) var(--space-xs);
+  border-bottom: var(--rule-hair);
+}
+td { padding: var(--space-2xs) var(--space-xs); border-bottom: var(--rule-hair); }
+.task-id { color: var(--color-ink); font-weight: 700; }
+.cat, .ci { color: var(--color-ink-2); font-variant-numeric: tabular-nums; }
+.dot { display: inline-block; width: 8px; height: 8px; margin-right: 3px; }
+.dot.pass { background: var(--color-accent); }
+.dot.fail { background: var(--color-danger); }
+.dot.error { background: var(--color-rule); }
+footer {
+  margin-top: var(--space-xl);
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+footer p { margin: 0 0 var(--space-2xs); }
+footer .hash { color: var(--color-accent); }
+footer a { color: var(--color-ink); text-decoration-color: var(--color-accent); }
+footer a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+@media (max-width: 480px) {
+  body { padding: var(--space-md) var(--space-sm); }
+  .verdict { padding: var(--space-xs) var(--space-sm); }
+}
 </style>
 </head>
 <body>
-<h1>vibecheck <span class="q">— is <em>my</em> Claude Code degraded?</span></h1>
+<header>
+<div class="wordmark">vibecheck<span class="cursor">&#9614;</span></div>
+<div class="prompt"><span class="ps1">$</span> is <em>my</em> Claude Code degraded?</div>
+</header>
 ${verdictBanner(v)}
-<p>${total} attempts · ${daily.length} days · model(s): ${escapeHtml(models)} · generated ${asOf.toISOString().slice(0, 16)}Z</p>
+<p class="meta">${total} attempts &middot; ${daily.length} days &middot; model: ${escapeHtml(models)} &middot; generated ${escapeHtml(asOf.toISOString().slice(0, 16))}Z</p>
+<section class="panel">
+<div class="panel-title">pass rate &mdash; <span class="key-line">daily</span> &middot; <span class="key-roll">--- rolling 7d</span> &middot; band = wilson 95% ci</div>
 ${trendSvg(daily)}
+</section>
 ${taskTable(records)}
-<footer>Daily pass rate (solid) with Wilson 95% CI band; dashed line is the pooled 7-day rolling mean. Verdict compares the last 2 days against the trailing 14-day baseline (two-proportion test, α=0.05); with too few attempts it says so instead of guessing. Generated locally by <strong>vibecheck</strong> — keyless, self-hosted, your own subscription and config.</footer>
+<footer>
+<p><span class="hash">#</span> verdict compares the last 2 days against the trailing 14-day baseline (two-proportion test, &alpha;=0.05).</p>
+<p><span class="hash">#</span> too few attempts &rarr; it says INSUFFICIENT DATA instead of guessing. harness errors never count against the model.</p>
+<p><span class="hash">#</span> generated locally by vibecheck &mdash; keyless, self-hosted, your own subscription and config.</p>
+</footer>
 </body>
 </html>
 `;

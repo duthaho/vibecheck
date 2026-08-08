@@ -16,8 +16,9 @@ export function wilsonInterval(successes: number, n: number): Interval {
   const center = p + z2 / (2 * n);
   const margin = Z95 * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n));
   return {
-    low: Math.max(0, (center - margin) / denom),
-    high: Math.min(1, (center + margin) / denom),
+    // At the extremes the Wilson bound is exactly 0/1; clamp the fp noise.
+    low: successes === 0 ? 0 : Math.max(0, (center - margin) / denom),
+    high: successes === n ? 1 : Math.min(1, (center + margin) / denom),
   };
 }
 

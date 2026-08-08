@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadPack } from "./pack.js";
 import { createWorkspace } from "./workspace.js";
 import { runAttempt, type QueryFn } from "./runner.js";
-import { appendRecords } from "./results.js";
+import { appendRecords, readRecords } from "./results.js";
 import { getRunnerId, makeRecord } from "./schema.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -108,11 +108,81 @@ async function runCmd(args: string[], deps: CliDeps): Promise<number> {
   return 0;
 }
 
+function parseKeyValues(args: string[], allowed: string[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (let i = 0; i < args.length; i += 2) {
+    const [key, value] = [args[i]!, args[i + 1]];
+    if (!allowed.includes(key)) throw new Error(`Unknown flag ${key}`);
+    if (value === undefined) throw new Error(`Missing value for ${key}`);
+    out.set(key, value);
+  }
+  return out;
+}
+
+function loadResultsOrThrow(file: string) {
+  const records = readRecords(file);
+  if (records.length === 0) throw new Error(`No records found in ${file} — run \`vibecheck run\` first`);
+  return records;
+}
+
+async function renderCmd(args: string[]): Promise<number> {
+  const flags = parseKeyValues(args, ["--results", "--out"]);
+  const resultsFile = resolve(flags.get("--results") ?? join("results", "results.jsonl"));
+  const outFile = resolve(flags.get("--out") ?? join("dashboard", "index.html"));
+  const records = loadResultsOrThrow(resultsFile);
+  const { renderDashboard } = await import("./render.js");
+  const { mkdirSync, writeFileSync } = await import("node:fs");
+  mkdirSync(dirname(outFile), { recursive: true });
+  writeFileSync(outFile, renderDashboard(records));
+  console.log(`dashboard: ${outFile} (${records.length} records)`);
+  return 0;
+}
+
+async function reportCmd(args: string[]): Promise<number> {
+  const flags = parseKeyValues(args, ["--results"]);
+  const resultsFile = resolve(flags.get("--results") ?? join("results", "results.jsonl"));
+  const records = loadResultsOrThrow(resultsFile);
+  const { aggregateDaily, verdict, wilsonInterval } = await import("./stats.js");
+
+  const v = verdict(records);
+  const label = v.status === "ok" ? "OK" : v.status === "degraded" ? "DEGRADED" : "INSUFFICIENT DATA";
+  console.log(`vibecheck: ${label}`);
+  console.log(`  ${v.reason}`);
+
+  const daily = aggregateDaily(records);
+  const today = daily.at(-1);
+  if (today) {
+    console.log(
+      `  today (${today.day}): ${today.passes}/${today.n} pass [${(today.ci.low * 100).toFixed(0)}–${(today.ci.high * 100).toFixed(0)}%]${today.errors ? ` (${today.errors} harness errors)` : ""}`,
+    );
+  }
+  const trend = daily.slice(-7).map((d) => `${d.day.slice(5)} ${(d.rate * 100).toFixed(0)}%`).join(" · ");
+  if (trend) console.log(`  last 7 days: ${trend}`);
+
+  const byTask = new Map<string, { pass: number; n: number }>();
+  for (const r of records) {
+    if (r.outcome === "error") continue;
+    const t = byTask.get(r.task_id) ?? { pass: 0, n: 0 };
+    t.n++;
+    if (r.outcome === "pass") t.pass++;
+    byTask.set(r.task_id, t);
+  }
+  for (const [taskId, t] of [...byTask.entries()].sort()) {
+    const ci = wilsonInterval(t.pass, t.n);
+    console.log(`  ${taskId}: ${t.pass}/${t.n} [${(ci.low * 100).toFixed(0)}–${(ci.high * 100).toFixed(0)}%]`);
+  }
+  return 0;
+}
+
 export async function main(argv: string[], deps: CliDeps = {}): Promise<number> {
   const [command, ...rest] = argv;
   try {
     if (command === "run") return await runCmd(rest, deps);
-    console.error(`Usage: vibecheck <run> [--pack dir] [--results file] [--task id] [--repeats N]`);
+    if (command === "render") return await renderCmd(rest);
+    if (command === "report") return await reportCmd(rest);
+    console.error(
+      `Usage: vibecheck run [--pack dir] [--results file] [--task id] [--repeats N]\n       vibecheck render [--results file] [--out file]\n       vibecheck report [--results file]`,
+    );
     return 1;
   } catch (err) {
     console.error(`vibecheck: ${err instanceof Error ? err.message : String(err)}`);

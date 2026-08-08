@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -73,5 +73,44 @@ describe("cli run", () => {
 
   it("unknown command exits 1", async () => {
     expect(await main(["dance"], { queryFn: replay })).toBe(1);
+  });
+});
+
+describe("cli render + report", () => {
+  async function seeded(): Promise<string> {
+    const results = tmpResults();
+    await main(["run", "--pack", FIXTURE_PACK, "--results", results, "--repeats", "2"], {
+      queryFn: replay,
+    });
+    return results;
+  }
+
+  it("render writes a self-contained dashboard html", async () => {
+    const results = await seeded();
+    const out = join(dirname(results), "dash", "index.html");
+    const code = await main(["render", "--results", results, "--out", out], {});
+    expect(code).toBe(0);
+    const html = readFileSync(out, "utf8");
+    expect(html).toContain("<!doctype html>");
+    expect(html).toContain("mini-fix");
+  });
+
+  it("render fails cleanly with no results", async () => {
+    const code = await main(["render", "--results", "/nonexistent/results.jsonl"], {});
+    expect(code).toBe(1);
+  });
+
+  it("report prints the verdict to stdout", async () => {
+    const results = await seeded();
+    const logs: string[] = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((...a) => {
+      logs.push(a.join(" "));
+    });
+    const code = await main(["report", "--results", results], {});
+    spy.mockRestore();
+    expect(code).toBe(0);
+    const text = logs.join("\n");
+    expect(text).toMatch(/OK|DEGRADED|INSUFFICIENT/);
+    expect(text).toContain("mini-fix");
   });
 });

@@ -1,0 +1,9 @@
+{
+  "id": "follow-json-config",
+  "category": "instruction-following",
+  "prompt": "Create a file named config.json containing a JSON object with exactly these keys and values and nothing else: top-level key 'service' with value 'vibecheck'; top-level key 'retries' with the integer 3; top-level key 'limits' which is an object with 'timeout_ms' set to 30000 and 'max_parallel' set to 4; top-level key 'tags' which is the array ['canary','nightly'] in that order. Create only this one file.",
+  "allowedTools": ["Write"],
+  "maxTurns": 8,
+  "timeoutMs": 180000,
+  "grade": { "command": "node $TASK_DIR/grade.cjs" }
+}

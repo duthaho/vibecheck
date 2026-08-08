@@ -1,0 +1,9 @@
+{
+  "id": "tool-log-count",
+  "category": "tool-use",
+  "prompt": "The logs/ directory contains several .log files (and some files that are not .log). Create a file named summary.txt whose entire content is a single line: 'total_lines=N' where N is the exact total number of lines across all .log files only. Count the real lines — do not guess.",
+  "allowedTools": ["Read", "Write", "Bash", "Glob"],
+  "maxTurns": 10,
+  "timeoutMs": 180000,
+  "grade": { "command": "node $TASK_DIR/grade.cjs" }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "tool-sha-manifest",
+  "category": "tool-use",
+  "prompt": "The current directory contains data.txt. Create a file named manifest.txt whose entire content is the SHA-256 hex digest of data.txt, followed by two spaces, followed by 'data.txt' (the standard sha256sum format, one line). Compute the real digest — do not guess it.",
+  "allowedTools": ["Read", "Write", "Bash"],
+  "maxTurns": 10,
+  "timeoutMs": 180000,
+  "grade": { "command": "node $TASK_DIR/grade.cjs" }
+}

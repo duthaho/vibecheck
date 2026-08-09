@@ -132,21 +132,27 @@ footer a:focus-visible { outline: 2px solid var(--color-accent); outline-offset:
 </header>
 <section class="verdict insufficient-data">
 <div class="verdict-status">INSUFFICIENT DATA</div>
-<div class="verdict-reason">&rarr; need ≥8 recent and ≥20 baseline graded attempts (have 1/0)</div>
+<div class="verdict-reason">&rarr; need ≥8 recent and ≥20 baseline graded attempts (have 22/0)</div>
 </section>
-<p class="meta">1 attempts &middot; 1 days &middot; model: claude-opus-5[1m] &middot; generated 2026-08-08T20:23Z</p>
+<p class="meta">22 attempts &middot; 2 days &middot; model: claude-opus-5[1m] &middot; generated 2026-08-09T02:37Z</p>
 <section class="panel">
 <div class="panel-title">pass rate &mdash; <span class="key-line">daily</span> &middot; <span class="key-roll">--- rolling 7d</span> &middot; band = wilson 95% ci</div>
 <svg viewBox="0 0 900 320" role="img" aria-label="Daily pass rate">
 <line class="grid" x1="52" y1="280" x2="880" y2="280"/><text class="axis" x="44" y="284" text-anchor="end">0%</text><line class="grid" x1="52" y1="215" x2="880" y2="215"/><text class="axis" x="44" y="219" text-anchor="end">25%</text><line class="grid" x1="52" y1="150" x2="880" y2="150"/><text class="axis" x="44" y="154" text-anchor="end">50%</text><line class="grid" x1="52" y1="85" x2="880" y2="85"/><text class="axis" x="44" y="89" text-anchor="end">75%</text><line class="grid" x1="52" y1="20" x2="880" y2="20"/><text class="axis" x="44" y="24" text-anchor="end">100%</text>
-<polygon class="ci-band" points="466,20 466,226.29717826191828"/>
-<polyline class="rolling-mean" points="466,20"/>
-<polyline class="trend" points="466,20"/>
-<circle class="pt" cx="466" cy="20" r="3.5"><title>2026-08-08: 1/1 pass (100%)</title></circle>
-<text class="axis" x="466" y="312" text-anchor="middle">08-08</text>
+<polygon class="ci-band" points="52,20 880,22.198556830554857 880,78.94033619271865 52,226.29717826191828"/>
+<polyline class="rolling-mean" points="52,20 880,31.818181818181806"/>
+<polyline class="trend" points="52,20 880,32.380952380952394"/>
+<circle class="pt" cx="52" cy="20" r="3.5"><title>2026-08-08: 1/1 pass (100%)</title></circle><circle class="pt" cx="880" cy="32.380952380952394" r="3.5"><title>2026-08-09: 20/21 pass (95%)</title></circle>
+<text class="axis" x="52" y="312" text-anchor="middle">08-08</text><text class="axis" x="880" y="312" text-anchor="middle">08-09</text>
 </svg>
 </section>
-<div class="table-wrap"><table><thead><tr><th>task</th><th>category</th><th>pass</th><th>95% ci</th><th>last 10</th></tr></thead><tbody><tr><td class="task-id">fix-sum-offby1</td><td class="cat">code-fix</td><td>1/1 (100%)</td><td class="ci">[21–100%]</td><td><i class="dot pass" title="2026-08-08: pass"></i></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>task</th><th>category</th><th>pass</th><th>95% ci</th><th>last 10</th></tr></thead><tbody><tr><td class="task-id">fix-date-parse</td><td class="cat">code-fix</td><td>3/3 (100%)</td><td class="ci">[44–100%]</td><td><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i></td></tr>
+<tr><td class="task-id">fix-lru-recency</td><td class="cat">code-fix</td><td>3/3 (100%)</td><td class="ci">[44–100%]</td><td><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i></td></tr>
+<tr><td class="task-id">fix-sum-offby1</td><td class="cat">code-fix</td><td>4/4 (100%)</td><td class="ci">[51–100%]</td><td><i class="dot pass" title="2026-08-08: pass"></i><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i></td></tr>
+<tr><td class="task-id">follow-csv-report</td><td class="cat">instruction-following</td><td>3/3 (100%)</td><td class="ci">[44–100%]</td><td><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i></td></tr>
+<tr><td class="task-id">follow-json-config</td><td class="cat">instruction-following</td><td>3/3 (100%)</td><td class="ci">[44–100%]</td><td><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i></td></tr>
+<tr><td class="task-id">tool-log-count</td><td class="cat">tool-use</td><td>2/3 (67%)</td><td class="ci">[21–94%]</td><td><i class="dot pass" title="2026-08-09: pass"></i><i class="dot fail" title="2026-08-09: fail"></i><i class="dot pass" title="2026-08-09: pass"></i></td></tr>
+<tr><td class="task-id">tool-sha-manifest</td><td class="cat">tool-use</td><td>3/3 (100%)</td><td class="ci">[44–100%]</td><td><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i><i class="dot pass" title="2026-08-09: pass"></i></td></tr></tbody></table></div>
 <footer>
 <p><span class="hash">#</span> verdict compares the last 2 days against the trailing 14-day baseline (two-proportion test, &alpha;=0.05).</p>
 <p><span class="hash">#</span> too few attempts &rarr; it says INSUFFICIENT DATA instead of guessing. harness errors never count against the model.</p>
